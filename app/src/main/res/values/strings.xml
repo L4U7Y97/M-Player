@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">M-Player</string>
     <string name="widget_label">M-Player</string>
+    <string name="playback_channel_name">Playback</string>
     <string name="widget_description">Current song with previous, play/pause and next</string>
     <string name="widget_not_playing">Not playing</string>
     <string name="widget_open_app_hint">Tap to open M-Player</string>

@@ -1,5 +1,7 @@
 package dev.localmusic.playback
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.util.Log
@@ -11,11 +13,13 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.localmusic.MainActivity
+import dev.localmusic.R
 import dev.localmusic.appContainer
 import dev.localmusic.domain.PlaybackRestore
 import dev.localmusic.domain.QueueModel
@@ -52,6 +56,13 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelId(CHANNEL_ID)
+                .setChannelName(R.string.playback_channel_name)
+                .build(),
+        )
         val container = appContainer
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -113,6 +124,24 @@ class PlaybackService : MediaSessionService() {
         }
         Log.d(TAG, "PlaybackService created (audioSessionId=${container.audioSessionId})")
         pushWidgetState(player)
+    }
+
+    /**
+     * Creates the playback channel before Media3 would, with the launcher badge off: Media3 only disables it on
+     * API 27 and below. A channel's badge setting can't change once it exists, so this is a new channel id and the
+     * old Media3 default channel (badge on) is deleted.
+     */
+    private fun createNotificationChannel() {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.deleteNotificationChannel(DefaultMediaNotificationProvider.DEFAULT_CHANNEL_ID)
+        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.playback_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
+        )
+        channel.setShowBadge(false)
+        manager.createNotificationChannel(channel)
     }
 
     /**
@@ -258,5 +287,6 @@ class PlaybackService : MediaSessionService() {
     private companion object {
         const val TAG = "PlaybackService"
         const val SAVE_INTERVAL_MS = 10_000L
+        const val CHANNEL_ID = "playback"
     }
 }
