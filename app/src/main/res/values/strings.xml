@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Local Music</string>
-    <string name="widget_label">Local Music</string>
+    <string name="app_name">M-Player</string>
+    <string name="widget_label">M-Player</string>
     <string name="widget_description">Current song with previous, play/pause and next</string>
     <string name="widget_not_playing">Not playing</string>
-    <string name="widget_open_app_hint">Tap to open Local Music</string>
+    <string name="widget_open_app_hint">Tap to open M-Player</string>
     <string name="widget_previous">Widget previous</string>
     <string name="widget_play">Widget play</string>
     <string name="widget_pause">Widget pause</string>

@@ -131,7 +131,7 @@ fun LibraryScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("Local Music") },
+                    title = { Text("M-Player") },
                     actions = {
                         ActionIcon(Icons.Filled.Settings, "Settings", onOpenSettings)
                     },

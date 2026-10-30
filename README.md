@@ -1,4 +1,4 @@
-# Local Music
+# M-Player
 
 An offline Android music player for music that's already on your phone. Point it at one or more folders and it
 plays what's in them. It has no account, no streaming, and no internet access. The app doesn't request the
@@ -23,12 +23,12 @@ plays what's in them. It has no account, no streaming, and no internet access. T
 
 ## Installing
 
-Local Music isn't on the Play Store. You install the APK by hand (sideloading).
+M-Player isn't on the Play Store. You install the APK by hand (sideloading).
 
 1. Get `app-debug.apk` from a developer.
 2. Open it on your phone. Android will ask you to allow installs from the app you opened it with (Files, Chrome,
    your chat app, …). Allow it, then tap **Install**.
-3. Open **Local Music**, tap **Add folder**, pick the folder your music is in, and tap "Use this folder". To add
+3. Open **M-Player**, tap **Add folder**, pick the folder your music is in, and tap "Use this folder". To add
    more folders, choose which ones include subfolders, or rescan, go to Settings → **Music folders**.
 
 Requires Android 8.0 (API 26) or newer.

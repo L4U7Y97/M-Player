@@ -4,7 +4,7 @@ Scope is fixed by `docs/intent.md`. This file decides *how*. Tasks live in `docs
 
 ## 1. Project & build
 
-- App name **Local Music**; `applicationId` = `namespace` = `dev.localmusic`; single module `:app`.
+- App name **M-Player**; `applicationId` = `namespace` = `dev.localmusic`; single module `:app`.
 - `minSdk 26`, `compileSdk 35`, `targetSdk 35`. All libraries below were checked: every AAR (incl. transitive
   androidx.core/activity) declares `minCompileSdk <= 35` and `minAGP <= 8.6`. **Do not bump any library** without
   re-checking — newer core (1.17+), activity (1.11+), Media3 (1.9+) need compileSdk 36.
