@@ -33,9 +33,11 @@ Local Music isn't on the Play Store. You install the APK by hand (sideloading).
 
 Requires Android 8.0 (API 26) or newer.
 
-**Updating:** install the new APK over the old one. Your library, playlists and settings are kept. If Android says
-the app "conflicts with an existing package", the new APK was built on a different computer and has a different
-debug signature. Uninstall the old version first; you'll lose your playlists and settings when you do.
+**Updating:** install the new APK over the old one. Your library, playlists and settings are kept. Every build is
+signed with the same key (`app/debug.keystore`), whatever computer it was built on. If Android says the app
+"conflicts with an existing package", your installed copy was signed with a different key (it was built before the
+shared key was added, or on a setup that doesn't use it). Uninstall it once, which loses your playlists and settings,
+then install the new APK. Future updates install over it normally.
 
 **Permissions:**
 
@@ -60,6 +62,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 On Windows, use `.\gradlew.bat`. If `clean` fails with "Unable to delete … classes.jar", run `.\gradlew.bat --stop`
 first.
+
+Debug builds are signed with `app/debug.keystore`, not your machine's `~/.android/debug.keystore`. That way APKs
+from different computers can update each other without an uninstall. Keep the file in git and don't regenerate it.
+If you change the key, everyone with the app installed has to uninstall it and loses their data.
 
 The app is built with Kotlin, Jetpack Compose (Material 3), Media3/ExoPlayer, Room and DataStore. Code lives under
 `app/src/main/java/dev/localmusic/`:
