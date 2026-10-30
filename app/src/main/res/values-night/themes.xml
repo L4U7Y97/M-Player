@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window background / splash before the first Compose frame when the system is dark, or when the app theme
+         is Dark (LocalMusicApp mirrors it into the per-app night mode on API 31+). Black matches Pure black. -->
+    <style name="Theme.LocalMusic" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
