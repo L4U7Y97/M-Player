@@ -45,8 +45,17 @@ class SettingsRepository(context: Context, appScope: CoroutineScope) {
     suspend fun setSkipSilence(enabled: Boolean) = store.edit { it[SKIP_SILENCE] = enabled }
     suspend fun setThemeMode(mode: ThemeMode) = store.edit { it[THEME_MODE] = SettingsMapper.enumToString(mode) }
     suspend fun setPureBlack(enabled: Boolean) = store.edit { it[PURE_BLACK] = enabled }
-    suspend fun setAccent(accent: Accent) = store.edit { it[ACCENT] = SettingsMapper.enumToString(accent) }
     suspend fun setDynamicColor(enabled: Boolean) = store.edit { it[DYNAMIC_COLOR] = enabled }
+
+    /**
+     * Picks [theme] and turns Dynamic color off in the same edit (one theme change), so the theme applies. Stored on
+     * every API level: below 31 the switch is hidden, but the pick then survives a restore onto (or an upgrade to)
+     * Android 12+, where Dynamic color would otherwise default to on.
+     */
+    suspend fun setColorTheme(theme: ColorTheme) = store.edit {
+        it[COLOR_THEME] = SettingsMapper.enumToString(theme)
+        it[DYNAMIC_COLOR] = false
+    }
 
     suspend fun updateEq(transform: (EqSettings) -> EqSettings) = store.edit { prefs ->
         val eq = transform(prefs.toEq())
@@ -68,7 +77,7 @@ class SettingsRepository(context: Context, appScope: CoroutineScope) {
     private fun Preferences.toAppSettings() = AppSettings(
         themeMode = SettingsMapper.themeModeFromString(this[THEME_MODE]),
         pureBlack = this[PURE_BLACK] ?: false,
-        accent = SettingsMapper.accentFromString(this[ACCENT]),
+        colorTheme = SettingsMapper.colorThemeFromString(this[COLOR_THEME]),
         dynamicColor = this[DYNAMIC_COLOR] ?: true,
         skipSilence = this[SKIP_SILENCE] ?: false,
         sort = SortSpec(SettingsMapper.sortFieldFromString(this[SORT_FIELD]), this[SORT_ASC] ?: true),
@@ -78,7 +87,8 @@ class SettingsRepository(context: Context, appScope: CoroutineScope) {
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val PURE_BLACK = booleanPreferencesKey("pure_black")
-        val ACCENT = stringPreferencesKey("accent")
+        // Key predates color themes: it held the accent, whose names are the first ColorTheme names, so choices carry over.
+        val COLOR_THEME = stringPreferencesKey("accent")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
         val SORT_FIELD = stringPreferencesKey("sort_field")

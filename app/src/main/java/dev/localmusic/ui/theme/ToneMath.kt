@@ -7,7 +7,7 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Pure (JVM-testable) color math for the accent schemes (BUG-3). Colors are packed ARGB ints.
+ * Pure (JVM-testable) color math for the color themes (BUG-3, spec §7). Colors are packed ARGB ints.
  *
  * A "tone" is Material's perceptual lightness (CIE L*, 0 = black, 100 = white). [tone] finds the color with the
  * given hue and HSL saturation whose L* matches the requested tone, so generated roles get Material-like contrast
@@ -87,84 +87,56 @@ object ToneMath {
         }
         return hsl(hue, sat, (lo + hi) / 2f)
     }
-}
 
-/** Every accent-dependent Material 3 color role, as ARGB ints (BUG-3). */
-data class AccentRoles(
-    val primary: Int,
-    val onPrimary: Int,
-    val primaryContainer: Int,
-    val onPrimaryContainer: Int,
-    val inversePrimary: Int,
-    val secondary: Int,
-    val onSecondary: Int,
-    val secondaryContainer: Int,
-    val onSecondaryContainer: Int,
-    val tertiary: Int,
-    val onTertiary: Int,
-    val tertiaryContainer: Int,
-    val onTertiaryContainer: Int,
-    val background: Int,
-    val onBackground: Int,
-    val surface: Int,
-    val onSurface: Int,
-    val surfaceVariant: Int,
-    val onSurfaceVariant: Int,
-    val inverseSurface: Int,
-    val inverseOnSurface: Int,
-    val outline: Int,
-    val outlineVariant: Int,
-    val surfaceDim: Int,
-    val surfaceBright: Int,
-    val surfaceContainerLowest: Int,
-    val surfaceContainerLow: Int,
-    val surfaceContainer: Int,
-    val surfaceContainerHigh: Int,
-    val surfaceContainerHighest: Int,
-) {
-    companion object {
-        /**
-         * Material 3 tone mapping from one [seed] color: primary palette = seed hue/saturation, secondary = same hue at
-         * a third of the saturation, tertiary = hue + 60°, neutrals = seed hue at very low saturation (so surfaces and
-         * outlines are tinted by the accent, not by the default purple). Light uses tones 40/100/90/10, dark uses
-         * 80/20/30/90 for each accent group (Material's baseline).
-         */
-        fun fromSeed(seed: Int, dark: Boolean): AccentRoles {
-            val (h, s) = ToneMath.hueSat(seed)
-            fun p(t: Int) = ToneMath.tone(h, s, t)
-            fun s2(t: Int) = ToneMath.tone(h, s * 0.35f, t)
-            fun t3(t: Int) = ToneMath.tone(h + 60f, s * 0.6f, t)
-            fun n(t: Int) = ToneMath.tone(h, 0.06f, t)
-            fun nv(t: Int) = ToneMath.tone(h, 0.12f, t)
-            return if (dark) {
-                AccentRoles(
-                    primary = p(80), onPrimary = p(20), primaryContainer = p(30), onPrimaryContainer = p(90),
-                    inversePrimary = p(40),
-                    secondary = s2(80), onSecondary = s2(20), secondaryContainer = s2(30), onSecondaryContainer = s2(90),
-                    tertiary = t3(80), onTertiary = t3(20), tertiaryContainer = t3(30), onTertiaryContainer = t3(90),
-                    background = n(6), onBackground = n(90), surface = n(6), onSurface = n(90),
-                    surfaceVariant = nv(30), onSurfaceVariant = nv(80),
-                    inverseSurface = n(90), inverseOnSurface = n(20),
-                    outline = nv(60), outlineVariant = nv(30),
-                    surfaceDim = n(6), surfaceBright = n(24),
-                    surfaceContainerLowest = n(4), surfaceContainerLow = n(10), surfaceContainer = n(12),
-                    surfaceContainerHigh = n(17), surfaceContainerHighest = n(22),
-                )
-            } else {
-                AccentRoles(
-                    primary = p(40), onPrimary = p(100), primaryContainer = p(90), onPrimaryContainer = p(10),
-                    inversePrimary = p(80),
-                    secondary = s2(40), onSecondary = s2(100), secondaryContainer = s2(90), onSecondaryContainer = s2(10),
-                    tertiary = t3(40), onTertiary = t3(100), tertiaryContainer = t3(90), onTertiaryContainer = t3(10),
-                    background = n(98), onBackground = n(10), surface = n(98), onSurface = n(10),
-                    surfaceVariant = nv(90), onSurfaceVariant = nv(30),
-                    inverseSurface = n(20), inverseOnSurface = n(95),
-                    outline = nv(50), outlineVariant = nv(80),
-                    surfaceDim = n(87), surfaceBright = n(98),
-                    surfaceContainerLowest = n(100), surfaceContainerLow = n(96), surfaceContainer = n(94),
-                    surfaceContainerHigh = n(92), surfaceContainerHighest = n(90),
-                )
-            }
+    /** HSL lightness (0..1) of [argb]. */
+    fun lightness(argb: Int): Float {
+        val r = (argb shr 16) and 0xFF
+        val g = (argb shr 8) and 0xFF
+        val b = argb and 0xFF
+        return (max(r, max(g, b)) + min(r, min(g, b))) / 510f
+    }
+
+    /** Opaque per-channel sRGB blend from [a] ([t] = 0) to [b] ([t] = 1). */
+    fun mix(a: Int, b: Int, t: Float): Int {
+        fun ch(shift: Int): Int {
+            val x = (a shr shift) and 0xFF
+            val y = (b shr shift) and 0xFF
+            return (x + (y - x) * t + 0.5f).toInt().coerceIn(0, 255)
         }
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+
+    /**
+     * [color] when its contrast with [against] is at least [min]; otherwise the color of the same hue whose HSL lightness
+     * is closest to [color]'s and reaches [min], moving away from [against] first. The HSL saturation is kept unless that
+     * would make the color more colorful (higher chroma) than [color]: darkening a pastel at full saturation would turn
+     * a dusty rose into brick red. Luminance is monotonic in lightness along that path, so each direction is a binary
+     * search. Black or white (whichever contrasts more) when neither direction can reach [min].
+     */
+    fun ensureContrast(color: Int, against: Int, min: Double): Int {
+        if (contrast(color, against) >= min) return color
+        val (h, s) = hueSat(color)
+        val start = lightness(color)
+        val chroma = (1f - abs(2f * start - 1f)) * s
+        fun shade(light: Float): Int {
+            val room = 1f - abs(2f * light - 1f)
+            return hsl(h, if (room > 0f) minOf(s, chroma / room) else 0f, light)
+        }
+        val darkerFirst = luminance(against) >= luminance(color)
+        for (darker in listOf(darkerFirst, !darkerFirst)) {
+            val end = if (darker) 0f else 1f
+            if (contrast(shade(end), against) < min) continue
+            // [ok] always reaches min and [bad] never does; the passing lightnesses are one interval ending at [end].
+            var ok = end
+            var bad = start
+            repeat(24) {
+                val mid = (ok + bad) / 2f
+                if (contrast(shade(mid), against) >= min) ok = mid else bad = mid
+            }
+            return shade(ok)
+        }
+        val black = 0xFF000000.toInt()
+        val white = 0xFFFFFFFF.toInt()
+        return if (contrast(black, against) >= contrast(white, against)) black else white
     }
 }

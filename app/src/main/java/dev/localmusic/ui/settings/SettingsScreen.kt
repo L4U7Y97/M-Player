@@ -46,7 +46,7 @@ fun SettingsScreen(
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
             NavRow("Music folders", "Pick folders, include subfolders, rescan", Icons.Filled.Folder, onOpenFolders)
             NavRow("Equalizer", "Presets, bands, bass boost", Icons.Filled.Equalizer, onOpenEqualizer)
-            NavRow("Theme", "Light, dark, pure black, accent color", Icons.Filled.Palette, onOpenTheme)
+            NavRow("Theme", "Light, dark, pure black, color themes", Icons.Filled.Palette, onOpenTheme)
             HorizontalDivider()
             SwitchRow(
                 label = "Skip silence",

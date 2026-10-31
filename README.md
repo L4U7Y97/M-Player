@@ -17,8 +17,10 @@ plays what's in them. It has no account, no streaming, and no internet access. T
 - **Playlists**: create, rename, reorder and delete them. Playlists are stored on the device, and files that go
   missing are flagged.
 - **Equalizer**: device presets, custom bands and bass boost.
-- **Themes**: light, dark or follow system, plus a pure-black option, a few accent colors, and Material You colors
-  on Android 12+.
+- **Themes**: light, dark or follow system, plus a pure-black option and Material You colors on Android 12+. There
+  are 14 color themes, each with a light and a dark version: Purple, Blue, Green, Orange and Pink (Material colors),
+  Monochrome, and the Catppuccin, Dracula, Everforest, Gruvbox, Nord, Rosé Pine, Solarized and Tokyo Night palettes.
+  The Theme screen shows a small preview of each one.
 - **Home-screen widget**: shows the current song with previous / play-pause / next buttons.
 
 ## Installing
@@ -77,7 +79,7 @@ The app is built with Kotlin, Jetpack Compose (Material 3), Media3/ExoPlayer, Ro
 | `domain` | Pure Kotlin logic: sorting, queue, shuffle order, repeat, playlist ordering |
 | `playback` | `PlaybackService` (Media3 session), player connection, equalizer, saved playback state |
 | `settings` | Persisted settings (theme, EQ, sort, UI state) |
-| `ui` | Compose screens: library, track lists, now playing, queue, playlists, settings |
+| `ui` | Compose screens: library, track lists, now playing, queue, playlists, settings. `ui/theme` holds the color themes |
 | `widget` | Home-screen widget |
 
 Most of the logic sits in `domain` and `data/scan` and is unit-tested in `app/src/test/` with no device needed.

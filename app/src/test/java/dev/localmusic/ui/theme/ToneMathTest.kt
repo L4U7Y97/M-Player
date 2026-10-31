@@ -38,7 +38,7 @@ class ToneMathTest {
     @Test
     fun accentRoles_onColorsContrastWithTheirBackgrounds() {
         for (seed in seeds) for (dark in listOf(false, true)) {
-            val r = AccentRoles.fromSeed(seed, dark)
+            val r = ColorRoles.fromSeed(seed, dark)
             val label = "seed=${Integer.toHexString(seed)} dark=$dark"
             assertTrue("$label onPrimary", ToneMath.contrast(r.primary, r.onPrimary) >= 4.5)
             assertTrue("$label onPrimaryContainer", ToneMath.contrast(r.primaryContainer, r.onPrimaryContainer) >= 4.5)
@@ -52,7 +52,7 @@ class ToneMathTest {
         // BUG-3: Green's dark onPrimary was Material's purple 0xFF381E72. Every accent role must carry the seed hue.
         for (seed in seeds) {
             val seedHue = ToneMath.hueSat(seed).first
-            val r = AccentRoles.fromSeed(seed, dark = true)
+            val r = ColorRoles.fromSeed(seed, dark = true)
             for (role in listOf(r.primary, r.onPrimary, r.primaryContainer, r.onPrimaryContainer, r.secondaryContainer)) {
                 val hue = ToneMath.hueSat(role).first
                 assertTrue("seed ${Integer.toHexString(seed)} role ${Integer.toHexString(role)}", hueDistance(seedHue, hue) < 15f)

@@ -498,3 +498,47 @@ Build: `.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest --console=plain`
 - Tapping a track row (folder/artist/album lists and playlists) starts playback and opens Now Playing.
   "Play all" / "Shuffle all" still stay on the list.
 - Not yet verified on an emulator.
+
+## Color themes (2026-10-30)
+
+- The 5 accents became 14 **color themes** (`settings/ColorTheme`, replaces `Accent`): Purple, Blue, Green, Orange,
+  Pink (the Material themes, unchanged) plus Monochrome, Catppuccin, Dracula, Everforest, Gruvbox, Nord, Rosé Pine,
+  Solarized and Tokyo Night. Each has a light and a dark scheme; Mode, Pure black and Dynamic color work as before.
+- Stored under the old DataStore key `accent` with the same names for the first five, so an install that had
+  `Accent Green` comes up with `Theme Green`. `AppSettings.accent` → `colorTheme`, `setAccent` →
+  `setColorTheme(theme)`, which also turns Dynamic color off in the same edit, on every API level (so a pick made
+  below API 31 survives a restore onto Android 12+).
+- `ui/theme`: `ThemePalettes` (palette data, pure), `ColorRoles` (was `AccentRoles` in ToneMath.kt; `fromSeed`
+  unchanged, new `fromPalette`), `ToneMath.mix` / `ensureContrast` / `lightness`. `Theme.kt`: `colorThemeScheme`,
+  `appColorScheme`, `withPureBlack` (replace `accentScheme` / `accentSwatch`). Tests: `ColorThemesTest` (new),
+  `SettingsMapperTest` and `ToneMathTest` updated.
+- Palette colors are kept where legible; otherwise `ensureContrast` moves only their lightness (hue kept, never more
+  colorful than the palette color: Rosé Pine Dawn's rose darkens to #A6504D, not brick red). Floors (spec §7): text
+  ≥ 7:1; accents and error ≥ 4.5:1 on `surfaceContainerHigh`, where dialog buttons draw them; subtext ≥ 4.5:1 and
+  outline ≥ 3:1 on `surfaceContainerHighest` (the off switch's thumb sits on it).
+- Theme screen: the accent swatches are replaced by a grid of preview cards (a miniature Library screen per theme, in
+  the current mode and pure black). Picking a card turns Dynamic color off, as accents did. Cards are at least
+  96dp × font scale wide (3 columns on a phone at the default size, 2 with large fonts); names wrap to 2 lines
+  instead of being cut off.
+  The grid sets its rows and columns for accessibility services explicitly (`selectableGroup()` would number the
+  cards within each row).
+- Elsewhere: Now Playing marks Shuffle / Repeat "on" with a dot under the primary icon (Monochrome's primary is close
+  to its text color, so the color alone didn't show the state); the current queue row is `surfaceContainerHigh`
+  instead of half-transparent `secondaryContainer`, so its primary title meets 4.5:1 in every theme.
+
+### QA labels (replace the `Accent …` row)
+| Element | contentDescription |
+|---|---|
+| Color theme cards (role RadioButton; uiautomator shows the pick as `checked=true`) | `Theme Purple`, `Theme Blue`, `Theme Green`, `Theme Orange`, `Theme Pink`, `Theme Monochrome`, `Theme Catppuccin`, `Theme Dracula`, `Theme Everforest`, `Theme Gruvbox`, `Theme Nord`, `Theme Rosé Pine`, `Theme Solarized`, `Theme Tokyo Night` |
+
+`Theme Rosé Pine` is the only non-ASCII label: read uiautomator dumps as UTF-8, or match `Theme Ros`. In the round-3
+checklist (step 9) and the BUG-3 re-verify steps, read `Theme Green` for `Accent Green`.
+
+### How QA should verify
+- Install over the existing app (keep data), with Dynamic color off: the previously picked accent shows as the
+  selected card.
+- Settings → Theme → each card: the whole app recolors live (Library tabs/FAB, Now Playing, Equalizer sliders), in
+  `Light` and `Dark`, and with `Pure black` (black background, theme accents kept). Cards preview the current mode.
+- With `Dynamic color` on (API 31+), no card is selected; tapping one turns `Dynamic color` off and applies it.
+- `Theme Monochrome` → Now Playing: `Shuffle` on and `Repeat all` each show a dot under the icon; off shows none.
+- Font size 200 % (Settings → Display): the Theme grid drops to 2 columns and no theme name ends in "…".

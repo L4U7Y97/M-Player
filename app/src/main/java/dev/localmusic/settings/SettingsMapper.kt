@@ -24,7 +24,7 @@ object SettingsMapper {
 
     fun themeModeFromString(stored: String?): ThemeMode = enumFromString(stored, ThemeMode.SYSTEM)
 
-    fun accentFromString(stored: String?): Accent = enumFromString(stored, Accent.PURPLE)
+    fun colorThemeFromString(stored: String?): ColorTheme = enumFromString(stored, ColorTheme.PURPLE)
 
     fun sortFieldFromString(stored: String?): SortField = enumFromString(stored, SortField.TRACK_NUMBER)
 

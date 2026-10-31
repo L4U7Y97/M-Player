@@ -16,7 +16,7 @@ class SettingsMapperTest {
         val s = AppSettings()
         assertEquals(ThemeMode.SYSTEM, s.themeMode)
         assertFalse(s.pureBlack)
-        assertEquals(Accent.PURPLE, s.accent)
+        assertEquals(ColorTheme.PURPLE, s.colorTheme)
         assertTrue(s.dynamicColor)
         assertFalse(s.skipSilence)
         assertEquals(SortSpec(SortField.TRACK_NUMBER, true), s.sort)
@@ -37,8 +37,24 @@ class SettingsMapperTest {
     }
 
     @Test
-    fun accent_hasFiveSeedsWithLabels() {
-        assertEquals(listOf("Purple", "Blue", "Green", "Orange", "Pink"), Accent.values().map { it.label })
+    fun colorTheme_labels_materialThemesFirst() {
+        assertEquals(
+            listOf(
+                "Purple", "Blue", "Green", "Orange", "Pink", "Monochrome", "Catppuccin", "Dracula", "Everforest",
+                "Gruvbox", "Nord", "Rosé Pine", "Solarized", "Tokyo Night",
+            ),
+            ColorTheme.values().map { it.label },
+        )
+    }
+
+    @Test
+    fun colorTheme_storedAccentNamesKeepTheirTheme() {
+        // The setting stored the accent before color themes existed; those names must still pick the same colors.
+        val accents = listOf(
+            "PURPLE" to ColorTheme.PURPLE, "BLUE" to ColorTheme.BLUE, "GREEN" to ColorTheme.GREEN,
+            "ORANGE" to ColorTheme.ORANGE, "PINK" to ColorTheme.PINK,
+        )
+        for ((stored, theme) in accents) assertEquals(theme, SettingsMapper.colorThemeFromString(stored))
     }
 
     // ---- enums ----------------------------------------------------------------------------------------
@@ -46,7 +62,7 @@ class SettingsMapperTest {
     @Test
     fun enum_roundTripAllValues() {
         for (v in ThemeMode.values()) assertEquals(v, SettingsMapper.themeModeFromString(SettingsMapper.enumToString(v)))
-        for (v in Accent.values()) assertEquals(v, SettingsMapper.accentFromString(SettingsMapper.enumToString(v)))
+        for (v in ColorTheme.values()) assertEquals(v, SettingsMapper.colorThemeFromString(SettingsMapper.enumToString(v)))
         for (v in SortField.values()) assertEquals(v, SettingsMapper.sortFieldFromString(SettingsMapper.enumToString(v)))
     }
 
@@ -60,14 +76,15 @@ class SettingsMapperTest {
     fun enumFromString_caseInsensitiveAndTrimmed() {
         assertEquals(ThemeMode.DARK, SettingsMapper.themeModeFromString("dark"))
         assertEquals(ThemeMode.LIGHT, SettingsMapper.themeModeFromString("  Light "))
-        assertEquals(Accent.GREEN, SettingsMapper.accentFromString("green"))
+        assertEquals(ColorTheme.GREEN, SettingsMapper.colorThemeFromString("green"))
+        assertEquals(ColorTheme.TOKYO_NIGHT, SettingsMapper.colorThemeFromString(" tokyo_night "))
         assertEquals(SortField.FILE_NAME, SettingsMapper.sortFieldFromString("file_name"))
     }
 
     @Test
     fun enumFromString_nullBlankUnknown_default() {
         for (bad in listOf(null, "", "   ", "MAGENTA", "1", "PURPLE_X")) {
-            assertEquals("stored=$bad", Accent.PURPLE, SettingsMapper.accentFromString(bad))
+            assertEquals("stored=$bad", ColorTheme.PURPLE, SettingsMapper.colorThemeFromString(bad))
             assertEquals("stored=$bad", ThemeMode.SYSTEM, SettingsMapper.themeModeFromString(bad))
             assertEquals("stored=$bad", SortField.TRACK_NUMBER, SettingsMapper.sortFieldFromString(bad))
         }
@@ -76,7 +93,7 @@ class SettingsMapperTest {
     @Test
     fun enumFromString_genericWithExplicitDefault() {
         assertEquals(ThemeMode.DARK, SettingsMapper.enumFromString("nope", ThemeMode.DARK))
-        assertEquals(Accent.PINK, SettingsMapper.enumFromString("PINK", Accent.BLUE))
+        assertEquals(ColorTheme.PINK, SettingsMapper.enumFromString("PINK", ColorTheme.BLUE))
     }
 
     // ---- band levels CSV ------------------------------------------------------------------------------
@@ -168,7 +185,7 @@ class SettingsMapperTest {
     @Test
     fun fullSettings_roundTripThroughStoredForm() {
         val original = AppSettings(
-            themeMode = ThemeMode.DARK, pureBlack = true, accent = Accent.ORANGE, dynamicColor = false,
+            themeMode = ThemeMode.DARK, pureBlack = true, colorTheme = ColorTheme.NORD, dynamicColor = false,
             skipSilence = true, sort = SortSpec(SortField.DATE_ADDED, ascending = false),
             eq = EqSettings(enabled = true, presetIndex = 2, bandLevelsMb = listOf(-300, 0, 150, 600, -1500),
                 bassBoostEnabled = true, bassBoostStrength = 750),
@@ -176,13 +193,13 @@ class SettingsMapperTest {
         // Mimic what SettingsRepository stores: strings for enums/CSV, primitives for the rest.
         val stored = mapOf(
             "theme" to SettingsMapper.enumToString(original.themeMode),
-            "accent" to SettingsMapper.enumToString(original.accent),
+            "colorTheme" to SettingsMapper.enumToString(original.colorTheme),
             "sortField" to SettingsMapper.enumToString(original.sort.field),
             "bands" to SettingsMapper.bandLevelsToCsv(original.eq.bandLevelsMb),
         )
         val restored = original.copy(
             themeMode = SettingsMapper.themeModeFromString(stored["theme"]),
-            accent = SettingsMapper.accentFromString(stored["accent"]),
+            colorTheme = SettingsMapper.colorThemeFromString(stored["colorTheme"]),
             sort = original.sort.copy(field = SettingsMapper.sortFieldFromString(stored["sortField"])),
             eq = original.eq.copy(
                 bandLevelsMb = SettingsMapper.bandLevelsFromCsv(stored["bands"], -1500, 1500, bandCount = 5),
@@ -197,7 +214,7 @@ class SettingsMapperTest {
     fun missingStoredValues_yieldDefaults() {
         val restored = AppSettings(
             themeMode = SettingsMapper.themeModeFromString(null),
-            accent = SettingsMapper.accentFromString(null),
+            colorTheme = SettingsMapper.colorThemeFromString(null),
             sort = SortSpec(SettingsMapper.sortFieldFromString(null), true),
             eq = EqSettings(bandLevelsMb = SettingsMapper.bandLevelsFromCsv(null, -1500, 1500)),
         )

@@ -86,8 +86,9 @@ fun QueueScreen(onBack: () -> Unit) {
                     modifier = Modifier
                         .semantics { selected = current }
                         .then(
+                            // surfaceContainerHigh: the color themes keep the primary title legible on it (spec §7).
                             if (current) {
-                                Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+                                Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             } else {
                                 Modifier
                             },

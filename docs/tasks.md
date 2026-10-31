@@ -97,6 +97,7 @@ green at the end of every phase. Spec references are to `docs/spec.md`. `[TEST]`
 - [ ] T26 Theme screen: Follow system / Light / Dark, Pure black, Dynamic color (API 31+), 5 accents; applied live.
   - AC: switching Dark + Pure black gives a black background immediately; choice persists after restart.
   - Dev note (round 3): coded: `ui/settings/ThemeScreen` (Follow system/Light/Dark radios, Pure black, Dynamic color on 31+, 5 accents; an accent pick turns Dynamic color off). Applied live through `LocalMusicTheme`; system-bar icons follow the app theme. Device check by QA.
+  - Dev note (2026-10-30): the 5 accents are now 14 color themes, see T33.
 - [ ] T27 "Skip silence" switch wired to `player.skipSilenceEnabled`.
   - AC: toggle persists and the service applies it while playing (log line or debug check).
 
@@ -123,6 +124,12 @@ green at the end of every phase. Spec references are to `docs/spec.md`. `[TEST]`
 - [x] T32 Final: `.\gradlew.bat clean assembleDebug testDebugUnitTest` green; INTERNET check (spec §9) clean; write `handoff-dev.md` with build/install steps, APK path, the spec §11 label table plus any additions, known gaps.
   - AC: all three commands pass and handoff file exists.
   - Dev note (round 3): `clean :app:assembleDebug :app:testDebugUnitTest` green (146 tests); merged manifest + aapt show no INTERNET; handoff-dev.md Round 3 has build steps, APK path, label table additions, known gaps, QA checklist.
+
+## Phase 9 — Color themes (added 2026-10-30)
+- [x] T33 Color themes (spec §7, §10, §11): `ColorTheme` replaces `Accent` (14 themes, each light + dark), stored under the old `accent` key so existing picks carry over; Theme screen gallery of preview cards `Theme <Name>`; palette themes meet the spec §7 contrast floors.
+  - AC: an install that had `Accent Green` comes up with `Theme Green`; each card recolors the app live in Light, Dark and Pure black; with Dynamic color on no card is selected and a pick turns it off; the pick survives a force-stop.
+  - AC: `ColorThemesTest` passes: every palette theme in both modes meets the floors on every surface container, and adjusted colors keep their hue and never gain chroma.
+  - Dev note (2026-10-30): done, see handoff-dev "Color themes". `:app:assembleDebug :app:testDebugUnitTest` green (179 tests). Checked on the API 35 emulator: migration from `Accent Green`, every card in Light / Dark / Pure black, Dynamic color, force-stop persistence, landscape, 200 % font size. Also changed: Now Playing marks Shuffle / Repeat "on" with a dot (not color alone), the current queue row is `surfaceContainerHigh`.
 
 ## Tester coverage summary
 `ScanRules` (T5), `TagFallbacks` (T6), `RepeatCycler` + `QueueModel` (T12), `SortSpec`/`TrackSorter` (T16),

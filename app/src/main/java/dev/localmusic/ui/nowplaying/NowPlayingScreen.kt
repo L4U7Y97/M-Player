@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -48,7 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -159,11 +161,7 @@ fun NowPlayingScreen(onBack: () -> Unit, onOpenQueue: () -> Unit) {
                     onCheckedChange = { connection.toggleShuffle() },
                     modifier = Modifier.semantics { contentDescription = "Shuffle" },
                 ) {
-                    Icon(
-                        Icons.Filled.Shuffle,
-                        contentDescription = null,
-                        tint = if (state.shuffle) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                    )
+                    ToggleIcon(Icons.Filled.Shuffle, on = state.shuffle)
                 }
                 ActionIcon(Icons.Filled.SkipPrevious, "Previous", connection::previous, iconSize = 36.dp)
                 val playDesc = if (state.isPlaying) "Pause" else "Play"
@@ -178,12 +176,15 @@ fun NowPlayingScreen(onBack: () -> Unit, onOpenQueue: () -> Unit) {
                     )
                 }
                 ActionIcon(Icons.Filled.SkipNext, "Next", connection::next, iconSize = 36.dp)
-                ActionIcon(
-                    if (state.repeatMode == RepeatMode.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
-                    RepeatCycler.label(state.repeatMode),
-                    connection::cycleRepeat,
-                    tint = if (state.repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                )
+                IconButton(
+                    onClick = connection::cycleRepeat,
+                    modifier = Modifier.semantics { contentDescription = RepeatCycler.label(state.repeatMode) },
+                ) {
+                    ToggleIcon(
+                        if (state.repeatMode == RepeatMode.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
+                        on = state.repeatMode != RepeatMode.OFF,
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -200,5 +201,25 @@ fun NowPlayingScreen(onBack: () -> Unit, onOpenQueue: () -> Unit) {
 
     addToPlaylist?.let { id ->
         AddToPlaylistDialog(trackIds = listOf(id), onDismiss = { addToPlaylist = null })
+    }
+}
+
+/**
+ * A Shuffle / Repeat icon: primary with a dot under it while [on]. The dot keeps the state visible when the primary is
+ * close to the text color (Monochrome) and to anyone who can't tell the two colors apart.
+ */
+@Composable
+private fun ToggleIcon(icon: ImageVector, on: Boolean) {
+    Box(contentAlignment = Alignment.Center) {
+        Icon(icon, contentDescription = null, tint = if (on) MaterialTheme.colorScheme.primary else LocalContentColor.current)
+        if (on) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = 6.dp)
+                    .size(4.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+            )
+        }
     }
 }

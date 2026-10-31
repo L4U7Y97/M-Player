@@ -49,7 +49,7 @@ data/repo/                LibraryRepository (folders, tracks, groupings, rescan)
 domain/                   TrackSorter*, SortSpec*, QueueModel*, RepeatCycler*, PlaylistOrdering*, Track (UI model)
 playback/                 PlaybackService, PlayerConnection, MediaItemMapper, AudioEffectsController
 settings/                 SettingsRepository (DataStore), AppSettings, SettingsMapper*, EqSettings*
-ui/theme/                 LocalMusicTheme, Accent palettes
+ui/theme/                 LocalMusicTheme, color themes: ToneMath*, ColorRoles*, ThemePalettes*
 ui/nav/                   AppNavHost, Routes
 ui/library/ ui/detail/ ui/nowplaying/ ui/queue/ ui/playlists/ ui/settings/ ui/components/ (MiniPlayer, TrackRow, dialogs)
 widget/                   NowPlayingWidgetProvider, WidgetRenderer, WidgetStateStore
@@ -148,7 +148,7 @@ widget/                   NowPlayingWidgetProvider, WidgetRenderer, WidgetStateS
 
 ## 7. Settings, equalizer, themes (DataStore `settings.preferences_pb`)
 
-- `AppSettings(themeMode: SYSTEM|LIGHT|DARK, pureBlack, accent: Accent, dynamicColor, skipSilence, sort: SortSpec,
+- `AppSettings(themeMode: SYSTEM|LIGHT|DARK, pureBlack, colorTheme: ColorTheme, dynamicColor, skipSilence, sort: SortSpec,
   eq: EqSettings)`. `EqSettings(enabled, presetIndex /* -1 = custom */, bandLevelsMb: List<Int>,
   bassBoostEnabled, bassBoostStrength 0..1000)`. Defaults: SYSTEM, false, PURPLE, true, false, TRACK_NUMBER asc,
   EQ off/custom/flat, bass off/0.
@@ -163,9 +163,24 @@ widget/                   NowPlayingWidgetProvider, WidgetRenderer, WidgetStateS
   `setBandLevel` per band; bass boost `enabled` + `setStrength` (if `strengthSupported`). Re-applies whenever
   re-created (e.g. after `release`).
 - Theme: `LocalMusicTheme(settings)`: dark = mode or `isSystemInDarkTheme()`; if `dynamicColor && SDK >= 31` →
-  `dynamicDark/LightColorScheme`, else accent scheme (5 hand-picked seeds: PURPLE, BLUE, GREEN, ORANGE, PINK, each
-  with a light and dark `ColorScheme`). Pure black (only in dark) → `background = surface = Color.Black`.
+  `dynamicDark/LightColorScheme`, else the color theme's scheme (`colorThemeScheme(theme, dark)`). Pure black (only
+  in dark, any theme or dynamic color) → `background`, `surface` and `surfaceContainer(Low/Lowest)` = `Color.Black`.
   Theme changes apply live (no restart).
+- `ColorTheme`, 14 themes, each with a light and a dark scheme. Stored under the DataStore key `accent` (it predates
+  color themes): the first five names are the old accents, so existing choices carry over; unknown → PURPLE.
+  - Material themes PURPLE (Material's baseline scheme), BLUE, GREEN, ORANGE, PINK: hand-tuned seeds, every other role
+    from Material tones of the seed (`ColorRoles.fromSeed`, BUG-3).
+  - Palette themes MONOCHROME, CATPPUCCIN, DRACULA, EVERFOREST, GRUVBOX, NORD, ROSE_PINE, SOLARIZED, TOKYO_NIGHT:
+    `ThemePalettes` gives a light and a dark `PaletteVariant` (background, text, subtext, primary, secondary, tertiary,
+    error) from each scheme's published palette; `ColorRoles.fromPalette` maps it to every role, error included.
+    Palette colors are used as they are where legible. Otherwise only their lightness moves (`ToneMath.ensureContrast`:
+    hue kept, never more colorful than the palette color) until the floors hold: text ≥ 7:1 on the background; accents
+    and error ≥ 4.5:1 on `surfaceContainerHigh` (dialog buttons), so also on the background and the lower containers;
+    subtext ≥ 4.5:1 and outline ≥ 3:1 on `surfaceContainerHighest`; on-colors ≥ 4.5:1 on their colors. Surfaces step
+    from the background toward the text color; containers mix the accent into the background. All pure Kotlin; the
+    floors are unit-tested for every palette theme in both modes, on every surface container.
+  - The 12 `*Fixed` roles keep Material's baseline in every theme: neither the app nor Material 3 1.4's components use
+    them.
 
 ## 8. Widget — RemoteViews (`AppWidgetProvider`), no Glance: zero extra deps and synchronous updates pushed from the service.
 
@@ -199,9 +214,11 @@ widget/                   NowPlayingWidgetProvider, WidgetRenderer, WidgetStateS
   **Shuffle all**, "Sort" menu (4 fields + Ascending/Descending items, current checked), rows (title, artist,
   duration) — tap = play list from that index; row "More options" → "Add to queue", "Add to playlist".
 - `now_playing` — title, artist, album, seek `Slider` + elapsed/total text, Previous, Play/Pause, Next, Shuffle
-  (toggle), Repeat (3-state), Queue, Add to playlist. Opened by tapping the MiniPlayer.
-- `queue` — LazyColumn in play order, current item highlighted; tap = jump; per row "Move up", "Move down",
-  "Remove from queue" (drag handle optional, buttons are the required path).
+  (toggle), Repeat (3-state), Queue, Add to playlist. Opened by tapping the MiniPlayer. Shuffle and Repeat show "on"
+  as a primary icon with a dot under it (not by color alone: Monochrome's primary is close to its text color).
+- `queue` — LazyColumn in play order, current item highlighted (`surfaceContainerHigh` row, primary title, "Now
+  playing ·" subtitle); tap = jump; per row "Move up", "Move down", "Remove from queue" (drag handle optional, buttons
+  are the required path).
 - `playlists` tab → list + FAB "New playlist" (dialog: text field "Playlist name", "Create"/"Cancel"); row menu
   "Rename playlist" / "Delete playlist" (confirm dialog). `playlist/{id}` = track list with Play all / Shuffle all,
   per-row "Move up" / "Move down" / "Remove from playlist"; missing tracks greyed with text "Missing" and skipped
@@ -211,7 +228,11 @@ widget/                   NowPlayingWidgetProvider, WidgetRenderer, WidgetStateS
   top action "Rescan" + scan progress text. `settings/equalizer`: switch "Equalizer enabled", "Preset" dropdown
   (device presets + "Custom"), one vertical/horizontal slider per band labelled "<freq> Hz", switch "Bass boost",
   slider "Bass boost strength". `settings/theme`: radio "Follow system" / "Light" / "Dark", switches "Pure black",
-  "Dynamic color" (hidden < API 31), accent swatches.
+  "Dynamic color" (hidden < API 31), then a grid of color theme cards, each a miniature Library screen in that theme
+  for the current mode and pure black, with its name (up to 2 lines). Columns: as many as fit at 96dp × font scale, at
+  least 2 (3 on a typical phone at the default font size); the grid's rows and columns are exposed to accessibility
+  services. Picking a card turns Dynamic color off (stored on every API level); while Dynamic color is on, no card is
+  selected.
 - State: one ViewModel per screen built from `AppContainer` via `viewModelFactory { initializer { … } }`.
 
 ## 11. QA hooks (contract — QA taps by these exact strings)
@@ -236,7 +257,7 @@ Root composable: `Modifier.semantics { testTagsAsResourceId = true }`; list rows
 | Folders | `Add folder`, `Remove folder`, `Include subfolders` (switch), `Rescan` |
 | Settings switches | `Skip silence`, `Equalizer enabled`, `Bass boost`, `Pure black`, `Dynamic color` |
 | EQ | `Preset`, sliders `Band <freq> Hz`, `Bass boost strength` |
-| Theme | `Follow system`, `Light`, `Dark`, accents `Accent Purple|Blue|Green|Orange|Pink` |
+| Theme | `Follow system`, `Light`, `Dark`, color theme cards `Theme <Name>` (radio): `Theme Purple`, `Blue`, `Green`, `Orange`, `Pink`, `Monochrome`, `Catppuccin`, `Dracula`, `Everforest`, `Gruvbox`, `Nord`, `Rosé Pine`, `Solarized`, `Tokyo Night` |
 | Widget buttons | `Widget previous`, `Widget play` / `Widget pause`, `Widget next` |
 | Tabs (text) | `Folders`, `Artists`, `Albums`, `Playlists` |
 | Dialog buttons (text) | `Create`, `Rename`, `Delete`, `Cancel` |
